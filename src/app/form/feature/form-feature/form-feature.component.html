@@ -1,5 +1,18 @@
+<button routerLink="">
+  ← Back to homepage
+</button>
+
 <h1>Form</h1>
 
+
+
+<button *ngIf="showUndo" (click)="undo()">
+  Undo
+</button>
+
+<button *ngIf="showRedo" (click)="redo()">
+  Redo
+</button>
 
 
 <form [formGroup]="dynamicForm" (ngSubmit)="onSubmit()">
