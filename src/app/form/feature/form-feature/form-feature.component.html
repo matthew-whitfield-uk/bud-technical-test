@@ -1,1 +1,37 @@
-<p>form-feature works!</p>
+<h1>Form</h1>
+
+
+
+<form [formGroup]="dynamicForm" (ngSubmit)="onSubmit()">
+  <div>
+    <label for="name">Name:</label>
+    <input id="name" type="text" formControlName="name">
+    <div *ngIf="name?.invalid && (name?.dirty || name?.touched)">
+      <div *ngIf="name?.errors?.['required']">Name is required.</div>
+    </div>
+  </div>
+
+  <div>
+    <label for="email">Email:</label>
+    <input id="email" type="email" formControlName="email">
+    <div *ngIf="email?.invalid && (email?.dirty || email?.touched)">
+      <div *ngIf="email?.errors?.['required']">Email is required.</div>
+      <div *ngIf="email?.errors?.['email']">Please enter a valid email address.</div>
+    </div>
+  </div>
+
+  <div formArrayName="interests">
+    <h3>Interests</h3>
+    <button type="button" (click)="addInterest()">Add Interest</button>
+
+    <div *ngFor="let interest of interests.controls; let i=index">
+      <label>
+        Interest {{i + 1}}:
+        <input type="text" [formControlName]="i">
+      </label>
+      <button type="button" (click)="removeInterest(i)">Remove</button>
+    </div>
+  </div>
+
+  <button type="submit" [disabled]="!dynamicForm.valid">Submit</button>
+</form>
