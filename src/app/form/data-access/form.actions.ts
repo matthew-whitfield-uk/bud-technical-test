@@ -6,7 +6,5 @@ export const updateFormState = createAction(
   props<{ name: string; email: string; interests: string[] }>()
 );
 
-
-
 export const undoFormState = createAction('[Form] Undo State');
 export const redoFormState = createAction('[Form] Redo State');

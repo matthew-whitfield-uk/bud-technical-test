@@ -5,8 +5,7 @@ import { RouterLink } from '@angular/router';
   selector: 'app-home-feature',
   standalone: true,
   imports: [RouterLink],
-  template: `<button routerLink="form">View Form</button>`
+  template: `<button routerLink="form">View Form</button>`,
+  styles: `:host {display:flex; justify-content: center;}`,
 })
-export class HomeFeatureComponent {
-
-}
+export class HomeFeatureComponent {}

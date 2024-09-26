@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import {
   FormArray,
   FormBuilder,
+  FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
@@ -14,7 +15,7 @@ import {
   undoFormState,
   updateFormState,
 } from '../../data-access/form.actions';
-import { Observable, take } from 'rxjs';
+import { Observable } from 'rxjs';
 import { RouterLink } from '@angular/router';
 
 @Component({
@@ -24,19 +25,22 @@ import { RouterLink } from '@angular/router';
   templateUrl: './form-feature.component.html',
   styleUrl: './form-feature.component.scss',
 })
-export class FormFeatureComponent implements OnInit, OnDestroy {
+export class FormFeatureComponent implements OnInit {
   dynamicForm: FormGroup;
   formState$: Observable<FormHistoryState>;
   showUndo: boolean = false;
-  showRedo: boolean = true;
+  showRedo: boolean = false;
 
   constructor(
     private fb: FormBuilder,
     private store: Store<{ form: FormHistoryState }>
   ) {
     this.dynamicForm = this.fb.group({
-      name: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
+      name: new FormControl<string>('', Validators.required),
+      email: new FormControl<string>('', [
+        Validators.required,
+        Validators.email,
+      ]),
       interests: this.fb.array([]),
     });
 
@@ -49,13 +53,25 @@ export class FormFeatureComponent implements OnInit, OnDestroy {
   }
 
   private initializeForm(): void {
-    this.formState$.pipe(take(1)).subscribe((state: FormHistoryState) => {
+    this.formState$.subscribe((state: FormHistoryState) => {
       if (state.present) {
         this.dynamicForm.patchValue({
           name: state.present.name,
           email: state.present.email,
-          interests: state.present.interests || [],
         });
+
+        const interestsFormArray = this.dynamicForm.get(
+          'interests'
+        ) as FormArray;
+        interestsFormArray.clear(); // Clear existing controls
+
+
+        if (state.present.interests && state.present.interests.length > 0) {
+
+          state.present.interests.forEach((interest: string) => {
+            interestsFormArray.push(new FormControl(interest));
+          });
+        }
       }
       this.updateUndoRedoVisibility(state);
     });
@@ -70,9 +86,7 @@ export class FormFeatureComponent implements OnInit, OnDestroy {
     this.showRedo = state.future && state.future.length > 0;
   }
 
-  ngOnDestroy(): void {
-    this.submitFormData();
-  }
+
 
   undoFormState() {
     this.store.dispatch(undoFormState());
@@ -98,16 +112,54 @@ export class FormFeatureComponent implements OnInit, OnDestroy {
 
   removeInterest(index: number) {
     this.interests.removeAt(index);
+    this.saveFormData();
   }
 
   onSubmit() {
     if (this.dynamicForm.valid) {
-      this.submitFormData();
+      this.saveFormData();
+      alert('form submitted');
+      this.resetForm()
+      this.saveFormData();
     }
   }
 
-  submitFormData() {
+  resetForm() {
+    this.dynamicForm.reset();
+    const interestsFormArray = this.dynamicForm.get(
+      'interests'
+    ) as FormArray;
+    interestsFormArray.clear(); // Clear existing controls
+  }
+
+  onBlur(controlName: string): void {
+    const control = this.dynamicForm.get(controlName);
+
+
+
+    if (control) {
+      if (control instanceof FormArray) {
+        // Compare FormArray values using JSON.stringify
+        if (JSON.stringify(this.lastSavedValues[controlName]) !== JSON.stringify(control.value)) {
+          console.log('save form interest');
+          this.saveFormData()
+        }
+      } else {
+        // Direct comparison for other controls
+        if (this.lastSavedValues[controlName] !== control.value) {
+          console.log('save form normal');
+          this.saveFormData()
+        }
+      }
+    }
+  }
+
+  lastSavedValues: any = {};
+
+  saveFormData() {
     const { name, email, interests } = this.dynamicForm.value;
+    console.log('store dispatch', name, email, interests);
+    this.lastSavedValues = { name, email, interests };
     this.store.dispatch(updateFormState({ name, email, interests }));
   }
 }
