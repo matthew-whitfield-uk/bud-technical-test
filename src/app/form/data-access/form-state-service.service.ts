@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { FormHistoryState } from './form-state.model';
-import { updateFormState, undoFormState, redoFormState } from './form.actions';
+import { updateFormState, undoFormState, redoFormState, resetFormState } from './form.actions';
 
 @Injectable({
   providedIn: 'root'
@@ -24,5 +24,9 @@ export class FormStateService {
 
   redo(): void {
     this.store.dispatch(redoFormState());
+  }
+
+  reset(): void {
+    this.store.dispatch(resetFormState());
   }
 }

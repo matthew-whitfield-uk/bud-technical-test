@@ -1,6 +1,6 @@
 // form.reducer.ts
 import { createReducer, on } from '@ngrx/store';
-import { updateFormState, undoFormState, redoFormState } from './form.actions';
+import { updateFormState, undoFormState, redoFormState, resetFormState } from './form.actions';
 import { FormState, FormHistoryState } from './form-state.model';
 
 export const initialFormState: FormState = {
@@ -18,21 +18,17 @@ export const initialState: FormHistoryState = {
 const _formReducer = createReducer(
   initialState,
 
-  // Update form state and push to the history
   on(updateFormState, (state, { name, email, interests }) => {
     const newPresent: FormState = { name, email, interests };
     const newPast = [...state.past, state.present].slice(-3); // Keep last 3 states
-
-    console.log('update state',newPresent, newPast );
     return {
       ...state,
       past: newPast,
       present: newPresent,
-      future: [] // Clear future on new state update
+      future: []
     };
   }),
 
-  // Undo to the previous state
   on(undoFormState, (state) => {
     if (state.past.length === 0) return state;
 
@@ -47,7 +43,6 @@ const _formReducer = createReducer(
     };
   }),
 
-  // Redo to the next state
   on(redoFormState, (state) => {
     if (state.future.length === 0) return state;
 
@@ -60,7 +55,14 @@ const _formReducer = createReducer(
       present: nextState,
       future: newFuture
     };
-  })
+  }),
+  on(resetFormState, () => {
+    return {
+      past: [],
+      present: initialFormState,
+      future: []
+    };
+  }),
 );
 
 

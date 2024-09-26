@@ -1,20 +1,3 @@
-<div class="formContainer">
-  <button routerLink="">
-    ← Back to homepage
-  </button>
-
-  <h1>Form</h1>
-
-
-
-  <button *ngIf="showUndo" (click)="undoFormState()">
-    Undo
-  </button>
-
-  <button *ngIf="showRedo" (click)="redoFormState()">
-    Redo
-  </button>
-
 
   <form [formGroup]="dynamicForm" (ngSubmit)="onSubmit()">
     <div>
@@ -36,18 +19,18 @@
 
     <div formArrayName="interests">
       <h3>Interests</h3>
-      <button type="button" (click)="addInterest()">Add Interest</button>
+      <button type="button" (click)="onAddInterest()">Add Interest</button>
 
       <div *ngFor="let interest of interests.controls; let i=index" class="gap">
         <label>
           Interest {{i + 1}}:
           <input type="text" [formControlName]="i" (blur)="onBlur('interests')">
         </label>
-        <button type="button" (click)="removeInterest(i)">Remove</button>
+        <button type="button" (click)="onRemoveInterest(i)">Remove</button>
       </div>
     </div>
 
     <button type="submit" [disabled]="!dynamicForm.valid">Submit</button>
   </form>
 
-</div>
+

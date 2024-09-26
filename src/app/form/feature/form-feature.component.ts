@@ -1,16 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ReactiveFormsModule, FormGroup, FormArray } from '@angular/forms';
+import { FormGroup, FormArray } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { FormService } from '../../data-access/form-service.service';
-import { FormStateService } from '../../data-access/form-state-service.service';
-import { FormHistoryState } from '../../data-access/form-state.model';
+import { FormService } from './../data-access/form-service.service';
+import { FormStateService } from './../data-access/form-state-service.service';
+import { FormHistoryState } from './../data-access/form-state.model';
+import { FormComponent } from '../ui/form/form.component';
 
 @Component({
   selector: 'app-form-feature',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormComponent],
   templateUrl: './form-feature.component.html',
   styleUrl: './form-feature.component.scss',
 })
@@ -26,7 +27,6 @@ export class FormFeatureComponent implements OnInit, OnDestroy {
     private formStateService: FormStateService
   ) {
     this.dynamicForm = this.formService.createForm();
-    this.subscribeToFormState();
   }
 
   ngOnInit(): void {
@@ -59,14 +59,6 @@ export class FormFeatureComponent implements OnInit, OnDestroy {
     this.formStateService.redo();
   }
 
-  get name() {
-    return this.dynamicForm.get('name');
-  }
-
-  get email() {
-    return this.dynamicForm.get('email');
-  }
-
   get interests() {
     return this.dynamicForm.get('interests') as FormArray;
   }
@@ -82,9 +74,9 @@ export class FormFeatureComponent implements OnInit, OnDestroy {
 
   onSubmit(): void {
     if (this.dynamicForm.valid) {
-      this.saveFormData();
       this.formService.handleSubmit();
-      this.resetForm();
+      this.formService.resetForm(this.dynamicForm);
+      this.formStateService.reset();
     }
   }
 

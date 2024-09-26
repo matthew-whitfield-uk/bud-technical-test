@@ -1,0 +1,18 @@
+<div class="formContainer">
+  <button routerLink="">← Back to homepage</button>
+
+  <h1>Form</h1>
+
+  <button [disabled]="!showUndo" (click)="undoFormState()">Undo</button>
+
+  <button [disabled]="!showRedo" (click)="redoFormState()">Redo</button>
+
+  <app-form
+    [dynamicForm]="dynamicForm"
+    (addInterest)="addInterest()"
+    (removeInterest)="removeInterest($event)"
+    (submitForm)="onSubmit()"
+    (blurField)="onBlur($event)"
+  >
+  </app-form>
+</div>
