@@ -1,22 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
-import {
-  FormArray,
-  FormBuilder,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
-import { Store } from '@ngrx/store';
-import { FormHistoryState } from '../../data-access/form-state.model';
-import {
-  redoFormState,
-  undoFormState,
-  updateFormState,
-} from '../../data-access/form.actions';
-import { Observable } from 'rxjs';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ReactiveFormsModule, FormGroup, FormArray } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { FormService } from '../../data-access/form-service.service';
+import { FormStateService } from '../../data-access/form-state-service.service';
+import { FormHistoryState } from '../../data-access/form-state.model';
 
 @Component({
   selector: 'app-form-feature',
@@ -25,141 +14,93 @@ import { RouterLink } from '@angular/router';
   templateUrl: './form-feature.component.html',
   styleUrl: './form-feature.component.scss',
 })
-export class FormFeatureComponent implements OnInit {
+export class FormFeatureComponent implements OnInit, OnDestroy {
   dynamicForm: FormGroup;
-  formState$: Observable<FormHistoryState>;
   showUndo: boolean = false;
   showRedo: boolean = false;
 
+  private formStateSubscription!: Subscription;
+
   constructor(
-    private fb: FormBuilder,
-    private store: Store<{ form: FormHistoryState }>
+    private formService: FormService,
+    private formStateService: FormStateService
   ) {
-    this.dynamicForm = this.fb.group({
-      name: new FormControl<string>('', Validators.required),
-      email: new FormControl<string>('', [
-        Validators.required,
-        Validators.email,
-      ]),
-      interests: this.fb.array([]),
-    });
-
-    this.formState$ = this.store.select('form');
-  }
-
-  ngOnInit(): void {
-    this.initializeForm();
+    this.dynamicForm = this.formService.createForm();
     this.subscribeToFormState();
   }
 
-  private initializeForm(): void {
-    this.formState$.subscribe((state: FormHistoryState) => {
-      if (state.present) {
-        this.dynamicForm.patchValue({
-          name: state.present.name,
-          email: state.present.email,
-        });
+  ngOnInit(): void {
+    this.subscribeToFormState();
+  }
 
-        const interestsFormArray = this.dynamicForm.get(
-          'interests'
-        ) as FormArray;
-        interestsFormArray.clear(); // Clear existing controls
-
-
-        if (state.present.interests && state.present.interests.length > 0) {
-
-          state.present.interests.forEach((interest: string) => {
-            interestsFormArray.push(new FormControl(interest));
-          });
-        }
-      }
-      this.updateUndoRedoVisibility(state);
-    });
+  ngOnDestroy(): void {
+    this.formStateSubscription?.unsubscribe();
   }
 
   private subscribeToFormState(): void {
-    this.formState$.subscribe(this.updateUndoRedoVisibility.bind(this));
+    this.formStateSubscription = this.formStateService.formState$.subscribe(
+      (state: FormHistoryState) => {
+        this.formService.updateFormFromState(this.dynamicForm, state);
+        this.updateUndoRedoVisibility(state);
+      }
+    );
   }
 
-  private updateUndoRedoVisibility(state: FormHistoryState): void {
+  private updateUndoRedoVisibility(state: any): void {
     this.showUndo = state.past && state.past.length > 0;
     this.showRedo = state.future && state.future.length > 0;
   }
 
-
-
-  undoFormState() {
-    this.store.dispatch(undoFormState());
+  undoFormState(): void {
+    this.formStateService.undo();
   }
 
-  redoFormState() {
-    this.store.dispatch(redoFormState());
+  redoFormState(): void {
+    this.formStateService.redo();
   }
 
   get name() {
     return this.dynamicForm.get('name');
   }
+
   get email() {
     return this.dynamicForm.get('email');
   }
+
   get interests() {
     return this.dynamicForm.get('interests') as FormArray;
   }
 
-  addInterest() {
-    this.interests.push(this.fb.control(''));
+  addInterest(): void {
+    this.formService.addInterest(this.interests);
   }
 
-  removeInterest(index: number) {
-    this.interests.removeAt(index);
+  removeInterest(index: number): void {
+    this.formService.removeInterest(this.interests, index);
     this.saveFormData();
   }
 
-  onSubmit() {
+  onSubmit(): void {
     if (this.dynamicForm.valid) {
       this.saveFormData();
-      alert('form submitted');
-      this.resetForm()
-      this.saveFormData();
+      this.formService.handleSubmit();
+      this.resetForm();
     }
   }
 
-  resetForm() {
-    this.dynamicForm.reset();
-    const interestsFormArray = this.dynamicForm.get(
-      'interests'
-    ) as FormArray;
-    interestsFormArray.clear(); // Clear existing controls
+  resetForm(): void {
+    this.formService.resetForm(this.dynamicForm);
+    this.saveFormData();
   }
 
   onBlur(controlName: string): void {
-    const control = this.dynamicForm.get(controlName);
-
-
-
-    if (control) {
-      if (control instanceof FormArray) {
-        // Compare FormArray values using JSON.stringify
-        if (JSON.stringify(this.lastSavedValues[controlName]) !== JSON.stringify(control.value)) {
-          console.log('save form interest');
-          this.saveFormData()
-        }
-      } else {
-        // Direct comparison for other controls
-        if (this.lastSavedValues[controlName] !== control.value) {
-          console.log('save form normal');
-          this.saveFormData()
-        }
-      }
+    if (this.formService.hasControlChanged(this.dynamicForm, controlName)) {
+      this.saveFormData();
     }
   }
 
-  lastSavedValues: any = {};
-
-  saveFormData() {
-    const { name, email, interests } = this.dynamicForm.value;
-    console.log('store dispatch', name, email, interests);
-    this.lastSavedValues = { name, email, interests };
-    this.store.dispatch(updateFormState({ name, email, interests }));
+  saveFormData(): void {
+    const formData = this.formService.getFormData(this.dynamicForm);
+    this.formStateService.updateFormState(formData);
   }
 }
